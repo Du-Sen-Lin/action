@@ -1,3 +1,9 @@
+
+
+
+
+
+
 # action_log
 
 # 一、openmmlab==>mmaction2
@@ -490,6 +496,20 @@ python tools/train.py configs/recognition/tsn/tsn_imagenet-pretrained-r50_8xb32-
 """result
 10/21 10:53:37 - mmengine - INFO - Epoch(val) [100][119/119]    acc/top1: 0.8163  acc/top5: 0.9543  acc/mean1: 0.8138  data_time: 0.0655  time: 0.1138
 """
+
+# test --show-dir  work_dirs/ucf101_tsn/show_out
+python tools/test.py configs/recognition/tsn/tsn_imagenet-pretrained-r50_8xb32-1x1x3-100e_ucf101-rgb.py \
+    work_dirs/ucf101_tsn/epoch_100.pth --work-dir ./work_dirs/ucf101_tsn --dump result.pkl
+"""result
+10/24 11:20:29 - mmengine - INFO - Epoch(test) [3783/3783]    acc/top1: 0.8369  acc/top5: 0.9633  acc/mean1: 0.8353  data_time: 0.0120  time: 0.1183
+"""
+
+
+# 增加 tsn_imagenet-pretrained-r50_8xb32-1x1x3-100e_xiandemo-rgb.py
+# 修改 tsn_r50.py num_classes=5
+# train
+CUDA_VISIBLE_DEVICES=2 python tools/train.py configs/recognition/tsn/tsn_imagenet-pretrained-r50_8xb32-1x1x3-100e_xiandemo-rgb.py --work-dir ./work_dirs/xiandemo_tsn
+
 ```
 
 #### 2、SlowFast
@@ -516,7 +536,26 @@ Abstract:
 python tools/train.py configs/recognition/slowfast/slowfast_r50_8xb8-4x16x1-256e_ucf101-rgb.py --work-dir ./work_dirs/ucf101_slowfast --seed=0
 
 """result
+10/22 12:08:02 - mmengine - INFO - Epoch(val) [256][473/473]    acc/top1: 0.7296  acc/top5: 0.8953  acc/mean1: 0.7304  data_time: 0.0156  time: 0.0794
+"""
+scp -r -P 5322 xian_video_dataset root@10.8.5.43:/root/project/research/action/mmaction2/data/
+scp -r -P 5322 VID_20240905_104444.mp4 root@10.8.5.43:/root/project/research/action/mmaction2/data/xian_video_dataset
+# 增加 slowfast_r50_8xb8-4x16x1-256e_xiandemo-rgb.py
+# 修改 slowfast_r50.py num_classes=5
+# train
+CUDA_VISIBLE_DEVICES=2 python tools/train.py configs/recognition/slowfast/slowfast_r50_8xb8-4x16x1-256e_xiandemo-rgb.py --work-dir ./work_dirs/xiandemo_slowfast
+"""train result
+10/24 13:09:38 - mmengine - INFO - Epoch(val) [256][13/13]    acc/top1: 1.0000  acc/top5: 1.0000  acc/mean1: 1.0000  data_time: 0.8523  time: 0.9189
+"""
 
+# test  --show-dir SHOW_DIR
+python tools/test.py configs/recognition/slowfast/slowfast_r50_8xb8-4x16x1-256e_xiandemo-rgb.py work_dirs/xiandemo_slowfast/epoch_256.pth --work-dir ./work_dirs/xiandemo_slowfast --dump work_dirs/xiandemo_slowfast/result_xiandemo.pkl --show-dir work_dirs/xiandemo_slowfast/result_out/
+"""result
+10/25 00:26:04 - mmengine - INFO - Epoch(test) [97/97]    acc/top1: 1.0000  acc/top5: 1.0000  acc/mean1: 1.0000  data_time: 0.3622  time: 0.6525
+"""
+
+"""show bug
+python demo/long_video_demo.py demo/demo_configs/slowfast_video_infer.py work_dirs/xiandemo_slowfast/epoch_256.pth data/xian_video_dataset/pre/VID_20240905_104444.mp4 data/xian_video_dataset/label_map.txt data/xian_video_dataset/output_video_3.mp4 --input-step 1 --device cuda:0 --threshold 0.2
 """
 ```
 
@@ -540,6 +579,40 @@ Abstract：
 我们提出了一种无卷积的视频分类方法，专门建立在空间和时间上的自注意力基础上。我们的方法名为“TimeSformer”，通过直接从帧级补丁序列进行时空特征学习，将标准 Transformer 架构应用于视频。我们的实验研究比较了不同的自注意力方案，并表明“分散注意力”（即时间注意力和空间注意力分别应用在每个块内）可以在所考虑的设计选择中获得最佳的视频分类准确性。尽管采用了全新的设计，TimeSformer 在多个动作识别基准测试中仍取得了最先进的结果，包括 Kinetics-400 和 Kinetics-600 上报告的最佳准确度。最后，与 3D 卷积网络相比，我们的模型训练速度更快，可以实现显着更高的测试效率（精度略有下降），并且还可以应用于更长的视频剪辑（超过一分钟长）。
 ```
 
+TimeSformer架构的核心是处理时空依赖的注意力机制。在视频中，模型需要同时捕获空间特征和时间特征的关系。TimeSformer提出了几种不同的时空注意力机制来进行时空建模，最主要的两种机制包括：
+
+```python
+# 空间注意力（Spatial Attention）：
+在每一帧内的patch之间计算自注意力，建模空间依赖关系。这部分是静态特征捕捉，类似于图像的Transformer。
+# 时间注意力（Temporal Attention）：
+在同一位置的不同帧之间计算自注意力，建模时间依赖关系。这部分可以理解为视频帧之间的动态变化建模。
+```
+
+不同策略：
+
+1. **Joint Space-Time Attention（联合时空注意力）**：在同一层同时计算时空的注意力。这种方法效率较低，因为它需要同时计算空间和时间维度的注意力，计算量大。
+2. **Divided Space-Time Attention（分离时空注意力）**：将空间和时间的注意力分离，先计算空间注意力，再计算时间注意力。这种方法可以有效减少计算复杂度，取得较好的平衡。
+
+复现：
+
+```python
+# 增加 timesformer_divST_8xb8-8x32x1-15e_ucf100-rgb.py
+# 增加 timesformer_spaceOnly_8xb8-8x32x1-15e_ucf101-rgb.py
+# 修改 num_classes=101,
+# clip_len=8, frame_interval=32, num_clips=1 理解:对于每个视频，模型会抽取一次片段，每个片段包含 8 帧，帧间隔为 32。因此，模型实际输入的 8 帧覆盖了 8×32=256 帧的时间跨度。
+scp -r -P 5322 vit_base_patch16_224.pth root@10.8.5.43:/root/project/research/action/mmaction2/checkpoints
+
+# 训练
+python tools/train.py configs/recognition/timesformer/timesformer_divST_8xb8-8x32x1-15e_ucf101-rgb.py --work-dir ./work_dirs/ucf101_timesformer --seed=0
+"""result
+10/24 10:10:14 - mmengine - INFO - Epoch(val) [15][473/473]    acc/top1: 0.8895  acc/top5: 0.9823  acc/mean1: 0.8903  data_time: 0.0108  time: 0.262
+"""
+
+
+```
+
+
+
 #### 5、[ActionCLIP](https://github.com/open-mmlab/mmaction2/blob/main/projects/actionclip/README.md) (ArXiv'2021)
 
 “ActionCLIP: A New Paradigm for Video Action Recognition”， 视频动作识别的新范式
@@ -560,6 +633,17 @@ Abstract：
 视觉社区正在见证从 CNN 到 Transformer 的建模转变，其中纯 Transformer 架构在主要视频识别基准上已达到最高准确度。这些视频模型都建立在 Transformer 层上，这些层在空间和时间维度上全局连接补丁。在本文中，我们提倡视频 Transformer 中局部性的归纳偏差，与之前使用时空分解全局计算自注意力的方法相比，这可以实现更好的速度与准确度权衡。所提出的视频架构的局部性是通过采用为图像域设计的 Swin Transformer 来实现的，同时继续利用预训练图像模型的强大功能。我们的方法在广泛的视频识别基准测试中实现了最先进的准确度，包括动作识别（Kinetics-400 上的 84.9 top-1 准确度和 Kinetics-600 上 85.9 top-1 的准确度，经过约 20 倍的预训练数据和约 3 倍小的模型大小）和时间建模（Something-Something v2 上的准确度为 69.6 top-1）
 ```
 
+```python
+# 增加 swin-tiny-p244-w877_in1k-pre_8xb8-amp-32x2x1-30e_ucf101-rgb.py
+# 修改 num_classes=101,
+# clip_len=8, frame_interval=32, num_clips=1 理解:对于每个视频，模型会抽取一次片段，每个片段包含 8 帧，帧间隔为 32。因此，模型实际输入的 8 帧覆盖了 8×32=256 帧的时间跨度。
+scp -r -P 5322 swin_tiny_patch4_window7_224.pth root@10.8.5.43:/root/project/research/action/mmaction2/checkpoints
+
+CUDA_VISIBLE_DEVICES=2 python tools/train.py configs/recognition/swin/swin-tiny-p244-w877_in1k-pre_8xb8-amp-32x2x1-30e_ucf101-rgb.py --work-dir ./work_dirs/ucf101_swin --seed=0
+```
+
+
+
 #### 7、[VideoMAE](https://github.com/open-mmlab/mmaction2/blob/main/configs/recognition/videomae/README.md) (NeurIPS'2022)
 
 “VideoMAE: Masked Autoencoders are Data-Efficient Learners for Self-Supervised Video Pre-Training“， 屏蔽自动编码器是用于自监督视频预训练的数据高效学习器
@@ -569,6 +653,8 @@ Abstract：
 ```
 通常需要在超大规模数据集上预训练视频转换器，才能在相对较小的数据集上实现最佳性能。在本文中，我们证明视频屏蔽自动编码器（VideoMAE）是用于自监督视频预训练（SSVP）的数据高效学习器。我们受到最近的 ImageMAE 的启发，提出了具有极高比率的定制视频管掩蔽。这种简单的设计使视频重建成为一项更具挑战性的自我监督任务，从而鼓励在预训练过程中提取更有效的视频表示。我们在 SSVP 上获得了三个重要发现：（1）极高比例的掩蔽比（即 90% 到 95%）仍然可以产生良好的 VideoMAE 性能。时间冗余的视频内容能够实现比图像更高的掩蔽比。 (2) VideoMAE 在非常小的数据集（即大约 3k-4k 视频）上取得了令人印象深刻的结果，而无需使用任何额外的数据。 (3)VideoMAE表明对于SSVP来说数据质量比数据数量更重要。预训练和目标数据集之间的域转移是一个重要问题。值得注意的是，我们的 VideoMAE 与 vanilla ViT 可以在 Kinetics-400 上达到 87.4%，在 Something-Something V2 上达到 75.4%，在 UCF101 上达到 91.3%，在 HMDB51 上达到 62.6%，而无需使用任何额外的数据。
 ```
+
+VideoMAE 包括后续在mmaction2中不支持训练。
 
 #### 8、[MViT V2](https://github.com/open-mmlab/mmaction2/blob/main/configs/recognition/mvit/README.md) (CVPR'2022)
 
@@ -606,7 +692,7 @@ Abstract：
 
 Abstract：
 
-```
+```python
 规模是构建强大的基础模型的主要因素，该模型可以很好地推广到各种下游任务。然而，训练具有数十亿参数的视频基础模型仍然具有挑战性。本文表明，视频掩码自动编码器（VideoMAE）是一种可扩展的通用自监督预训练器，用于构建视频基础模型。我们通过核心设计在模型和数据方面扩展了 VideoMAE。具体来说，我们提出了一种用于高效预训练的双重掩蔽策略，其中编码器对视频令牌的子集进行操作，解码器对视频令牌的另一个子集进行处理。尽管VideoMAE由于编码器中的高掩蔽比而非常高效，但掩蔽解码器仍然可以进一步降低总体计算成本。这使得视频中十亿级模型的高效预训练成为可能。我们还使用渐进式训练范例，其中涉及对不同的多源未标记数据集进行初始预训练，然后对混合标记数据集进行后预训练。最后，我们成功训练了具有十亿个参数的视频 ViT 模型，该模型在 Kinetics（K400 上为 90.0%，K600 上为 89.9%）和 Something-Something（K400 上为 68.7%）数据集上实现了新的最先进性能。 V1 和 V2 为 77.0%）。此外，我们在各种下游任务上广泛验证了预训练的视频 ViT 模型，证明了其作为通用视频表示学习器的有效性。
 ```
 
@@ -647,6 +733,114 @@ Registry 机制的优势:
 - **模块化**：`Registry` 机制使得模型的各个组件解耦，便于扩展和修改。
 - **灵活性**：通过配置文件可以轻松更换不同的组件，比如更换 `Backbone` 或 `Head`。
 - **易于扩展**：用户可以自定义自己的模型组件，并通过 `Registry` 进行注册和使用。
+
+### 4-2、Timesformer 源码分析
+
+#### Backbone:
+
+1. TimeSformer 简介
+
+`TimeSformer` 是一个用于视频理解的 Transformer 模型，主要通过空间和时间维度的注意力机制来捕捉视频中的信息。这个实现基于论文 “Is Space-Time Attention All You Need for Video Understanding?”。
+
+2. 关键参数解析
+
+- **num_frames**: 视频中的帧数。模型需要在多帧的情况下工作，提取时空特征。
+- **img_size**: 输入视频帧的图像大小，可以是整数或元组类型。如果输入图像是方形的，则使用一个整数，否则使用一个元组表示宽和高。
+- **patch_size**: 将输入图像切割成多个小块（patch），每个 patch 的尺寸。
+- **pretrained**: 预训练模型的路径，用于加载预训练权重。
+- **embed_dims**: 嵌入维度，Transformer 的特征表示的维度。
+- **num_heads**: Transformer 编码器中并行注意力头的数量，用于捕捉特征的不同部分。
+- **num_transformer_layers**: Transformer 编码器的层数。
+- **dropout_ratio**: dropout 的比率，用于在训练过程中防止过拟合。
+- attention_type: 注意力机制的类型，有三种选择：
+  - `divided_space_time`: 分开处理时空维度的注意力。
+  - `space_only`: 只处理空间注意力。
+  - `joint_space_time`: 联合处理时空注意力。
+
+3. Patch Embedding (patch_embed)
+
+模型首先将输入图像划分为若干个 patch，然后将每个 patch 嵌入到一个高维空间中，这是模型的输入。
+
+4. Positional Embedding (pos_embed)
+
+由于 Transformer 不具备顺序信息，模型需要在输入中加上位置信息来帮助理解帧与帧之间的关系。
+
+5. Time Embedding (time_embed)
+
+当 attention type 不是 `space_only` 时，模型会加上时间维度的位置信息来捕捉时间上的变化。这在处理视频时尤为重要。
+
+6. Transformer 层
+
+模型的核心部分是多层 Transformer 编码器。在 `divided_space_time` 模式下，模型会分别对时间和空间维度的特征进行注意力操作。具体操作为：
+
+- 首先进行时间维度的注意力机制，然后再进行空间维度的注意力机制。
+- 对于 `space_only`，模型只处理空间特征，忽略时间维度。
+- `joint_space_time` 同时处理时空维度的注意力。
+
+7. Stochastic Depth (DropPath)
+
+在每层 Transformer 中使用 `DropPath` 来逐渐增加每层的 dropout 概率。这有助于训练深层网络，降低过拟合。
+
+8. Class Token
+
+模型的输出是一个分类 token。Transformer 层中的 `cls_token` 用于表示整个视频的全局信息，最后通过它来做分类任务。
+
+9. Forward 过程
+
+在 forward 函数中，模型首先通过 `patch_embed` 获得 patch 的嵌入表示，然后将这些表示加上位置嵌入。对于非 `space_only` 模式，还会加上时间维度的嵌入。经过多层 Transformer 层后，最终输出用于分类的 token。
+
+10. 权重初始化与预训练
+
+`init_weights` 函数负责权重初始化，使用截断正态分布进行权重的初始化。如果指定了预训练模型，会加载预训练的权重。
+
+------
+
+这段代码展示了 TimeSformer 模型的实现细节，包括 patch embedding、positional embedding、time embedding 以及 transformer layers 的构建。
+
+#### TimeSformerHead:
+
+1. `TimeSformerHead` 简介
+
+`TimeSformerHead` 类是继承自 `BaseHead` 的，用于 `TimeSformer` 模型的分类任务。它主要通过全连接层将输入特征映射到类别得分，用于视频分类任务。
+
+2. 参数解析
+
+- **num_classes**: 要分类的类别数量。最终的输出会是大小为 `[batch_size, num_classes]` 的张量。
+- **in_channels**: 输入特征的通道数，通常对应于从主干网络（如 TimeSformer）传递过来的嵌入维度（embedding dimensions）。
+- **loss_cls**: 用于构建分类损失的配置。默认使用交叉熵损失（`CrossEntropyLoss`），这是最常见的分类损失函数。
+- **init_std**: 初始化全连接层权重时的标准差。默认值为 0.02，表明初始化时使用截断正态分布。
+- **dropout_ratio**: Dropout 层的概率，用于在训练过程中防止过拟合。如果值不为 0，则会在全连接层前应用 Dropout。
+- **kwargs**: 其他额外的初始化参数。
+
+3. 初始化 (`__init__`)
+
+在 `__init__` 函数中，主要完成以下操作：
+
+- 初始化输入参数和分类头的超参数。
+- 如果 `dropout_ratio` 不为 0，则会创建一个 Dropout 层。
+- 创建一个全连接层 `fc_cls`，其输入大小为 `in_channels`，输出大小为 `num_classes`，用于将输入特征映射到类别得分。
+
+4. 权重初始化 (`init_weights`)
+
+该函数使用 `trunc_normal_init` 初始化全连接层的权重，标准差为 `init_std`。`trunc_normal_init` 是一种常用的初始化方式，确保权重不会离均值太远，有助于稳定训练过程。
+
+5. 前向传播 (`forward`)
+
+在前向传播过程中，模型接收输入张量 `x`，并执行以下操作：
+
+- 如果设置了 Dropout，则对输入 `x` 应用 Dropout。
+- 输入 `x` 通过全连接层 `fc_cls` 生成分类得分。
+- 最终返回大小为 `[N, num_classes]` 的分类得分。
+
+6. 应用场景
+
+`TimeSformerHead` 用于 TimeSformer 模型的视频分类任务。它接收从 `TimeSformer` 主干网络传递过来的嵌入特征，经过全连接层映射到类别得分，并在训练过程中通过损失函数（如交叉熵）进行监督学习。
+
+示例流程
+
+- 主干网络 (`TimeSformer`) 提取视频帧的时空特征，生成大小为 `[batch_size, in_channels]` 的特征张量。
+- 这些特征传递给分类头 (`TimeSformerHead`)。
+- 分类头输出大小为 `[batch_size, num_classes]` 的分类得分
 
 
 
