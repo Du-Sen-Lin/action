@@ -29,6 +29,9 @@ http://10.8.5.43:5340/tree?
 conda create --name openmmlab python=3.8 -y
 conda activate openmmlab
 conda install pytorch torchvision -c pytorch  # This command will automatically install the latest version PyTorch and cudatoolkit, please check whether they match your environment.
+""" conda remove --name openmmlab --all
+最后直接在cv_env上修改
+"""
 pip install -U openmim
 mim install mmengine
 mim install mmcv
@@ -399,7 +402,7 @@ cmake -DCMAKE_INSTALL_PREFIX=$HOME/app -DUSE_HDF5=no -DUSE_NVFLOW=no ..
 make -j
 make install
 
-"""
+""
 python tools/data/build_rawframes.py data/ucf101/videos/ data/ucf101/rawframes/ --task rgb --level 2  --ext avi
 """报错 denseflow: error while loading shared libraries: libopencv_cudaoptflow.so.406: cannot open shared object file: No such file or directory
 find /usr/local/ -name "libopencv_cudaoptflow*"
@@ -509,6 +512,9 @@ python tools/test.py configs/recognition/tsn/tsn_imagenet-pretrained-r50_8xb32-1
 # 修改 tsn_r50.py num_classes=5
 # train
 CUDA_VISIBLE_DEVICES=2 python tools/train.py configs/recognition/tsn/tsn_imagenet-pretrained-r50_8xb32-1x1x3-100e_xiandemo-rgb.py --work-dir ./work_dirs/xiandemo_tsn
+
+
+# yolo + tsn 目标识别 + 姿态检测 + 跟踪 + 基于骨骼点（关键点）的时序动作识别
 
 ```
 
@@ -640,6 +646,15 @@ Abstract：
 scp -r -P 5322 swin_tiny_patch4_window7_224.pth root@10.8.5.43:/root/project/research/action/mmaction2/checkpoints
 
 CUDA_VISIBLE_DEVICES=2 python tools/train.py configs/recognition/swin/swin-tiny-p244-w877_in1k-pre_8xb8-amp-32x2x1-30e_ucf101-rgb.py --work-dir ./work_dirs/ucf101_swin --seed=0
+
+"""result
+10/25 14:02:34 - mmengine - INFO - Epoch(val) [30][473/473]    acc/top1: 0.8821  acc/top5: 0.9741  acc/mean1: 0.8822  data_time: 0.0138  time: 0.2565
+"""
+
+# 增加 swin-tiny-p244-w877_in1k-pre_8xb8-amp-8x1x2-30e_xiandemo-rgb.py
+# 修改 num_classes=5
+CUDA_VISIBLE_DEVICES=2 python tools/train.py configs/recognition/swin/swin-tiny-p244-w877_in1k-pre_8xb8-amp-8x1x2-30e_xiandemo-rgb.py --work-dir ./work_dirs/xiandemo_swin --seed=0
+
 ```
 
 
@@ -867,11 +882,79 @@ PySlowFast 的目标是提供高性能、轻量级的 pytorch 代码库，为不
 - MViTv1 and MViTv2
 - Rev-ViT and Rev-MViT
 
+```python
+# 环境
+conda create --name PySlowFast --clone cv_env	
+pip install pytorchvideo
+pip install 'git+https://github.com/facebookresearch/fairscale'
+pip install -U 'git+https://github.com/facebookresearch/fvcore.git' 'git+https://github.com/cocodataset/cocoapi.git#subdirectory=PythonAPI'
+git clone https://github.com/facebookresearch/detectron2 detectron2_repo
+pip install -e detectron2_repo
+# You can find more details at https://github.com/facebookresearch/detectron2/blob/master/INSTALL.md
+
+git clone https://github.com/facebookresearch/slowfast
+cd SlowFast
+python setup.py build develop
+
+python tools/run_net.py --cfg configs/Kinetics/C2D_8x8_R50.yaml NUM_GPUS 1 TRAIN.BATCH_SIZE 8 SOLVER.BASE_LR 0.0125 DATA.PATH_TO_DATA_DIR path_to_your_data_folder
+```
+
+**FineTune**:
+
+```python
+# 搜关键字 custom data 
+https://github.com/facebookresearch/SlowFast/issues/716
+https://github.com/facebookresearch/SlowFast/issues/725
+https://github.com/facebookresearch/SlowFast/issues/623
+...
+
+# 新建 C2D_8x8_R50_ucf101.yaml  源码会有较多报错，且issues 无回复，不使用该库。
+# 可参考issues: https://github.com/facebookresearch/SlowFast/pull/541
+# 相关问题：https://blog.csdn.net/weixin_48716607/article/details/142650628
+python tools/run_net.py --cfg configs/Kinetics/C2D_8x8_R50_ucf101.yaml
+"""https://github.com/dfan/SlowFast
+git clone https://github.com/dfan/SlowFast.git
+cd SlowFast
+python setup.py build develop
+python tools/run_net.py --cfg configs/Kinetics/C2D_8x8_R50_ucf101.yaml
+"""
+
+**mvit**: 暂不复现
+https://github.com/facebookresearch/mvit
+
+
+**VideoMAEv2**:
+https://github.com/OpenGVLab/VideoMAEv2
+
+**internvideo**:
+https://github.com/opengvlab/internvideo
+```
+
+
+
+**News**:
+
+```python
+**LART** Lagrangian Action Recognition with Tracking,使用跟踪和 3D 姿势进行动作识别
+https://github.com/brjathu/LART
+
+**hiera** A Hierarchical Vision Transformer without the Bells-and-Whistles，没有花里胡哨的分层视觉转换器
+https://github.com/facebookresearch/hiera
+
+
+```
+
+
+
+# 三、视频理解OpenGVLab：
+
+github:  https://github.com/OpenGVLab
 
 
 
 
-# 三、人体关键点检测：
+
+# 四、人体关键点检测：
 
 https://github.com/CMU-Perceptual-Computing-Lab/openpose
 
