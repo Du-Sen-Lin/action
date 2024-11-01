@@ -62,7 +62,7 @@ CUDA_VISIBLE_DEVICES=2 python demo/image_demo.py \
     --draw-heatmap
 
 # 2D 动物图片姿态识别推理
-scp -r -P 5322 rtmdet_nano_8xb32-300e_hand-267f9c8f.pth root@10.8.5.43:/root/project/research/action/mmpose/checkpoints/
+scp -r -P 5322 faster_rcnn_r50_fpn_1x_coco_20200130-047c8118.pth root@10.8.5.43:/root/project/research/action/mmpose/checkpoints/
 
 python demo/topdown_demo_with_mmdet.py \
     demo/mmdetection_cfg/rtmdet_m_8xb32-300e_coco.py \
@@ -80,7 +80,7 @@ python demo/topdown_demo_with_mmdet.py \
     checkpoints/rtmpose-m_simcc-hand5_pt-aic-coco_210e-256x256-74fb594_20230320.pth \
     --input tests/data/onehand10k/9.jpg \
     --output-root vis_results --draw-heatmap
-# 000000000110.jpg  /root/project/research/Yolo/ultralytics_yolov11/ultralytics/bus.jpg /root/dataset/action/hand-keypoints/val/images/IMG_00000004.jpg
+# 000000000110.jpg  /root/project/research/Yolo/ultralytics_yolov11/ultralytics/bus.jpg /root/dataset/action/hand-keypoints/val/images/IMG_00000004.jpg 
 python demo/topdown_demo_with_mmdet.py \
     demo/mmdetection_cfg/rtmdet_nano_320-8xb32_hand.py \
     checkpoints/rtmdet_nano_8xb32-300e_hand-267f9c8f.pth \
@@ -100,10 +100,30 @@ python demo/topdown_demo_with_mmdet.py \
     --input tests/data/tests_data_nvgesture_sk_color.avi \
     --output-root vis_results --kpt-thr 0.1
 
-# scp -r -P 5322 root@10.8.5.43:/root/project/research/action/mmpose/vis_results/tests_data_nvgesture_sk_color.avi ./result
+# VID_20240905_104444.mp4
+python demo/topdown_demo_with_mmdet.py \
+    demo/mmdetection_cfg/rtmdet_nano_320-8xb32_hand.py \
+    checkpoints/rtmdet_nano_8xb32-300e_hand-267f9c8f.pth \
+    configs/hand_2d_keypoint/rtmpose/hand5/rtmpose-m_8xb256-210e_hand5-256x256.py \
+    checkpoints/rtmpose-m_simcc-hand5_pt-aic-coco_210e-256x256-74fb594_20230320.pth \
+    --input /root/project/research/action/mmaction2/data/xian_video_dataset/pre/VID_20240905_104444.mp4 \
+    --output-root vis_results --kpt-thr 0.1
+
+# scp -r -P 5322 root@10.8.5.43:/root/project/research/action/mmpose/vis_results/VID_20240905_104444.mp4 ./result
+# scp -r -P 5322 new_oral2 root@10.8.5.43:/root/dataset/code
+# 训练
+# coco_tiny  coco格式 标注数据转为 labelme 可展示的每张图片对应json格式文件
+
 ```
 
 ## Docs:
 
+```python
 配置文件： https://mmpose.readthedocs.io/zh-cn/dev-1.x/user_guides/configs.html
+
+推理及其相关参数： https://mmpose.readthedocs.io/zh-cn/dev-1.x/user_guides/inference.html
+
+```
+
+
 
