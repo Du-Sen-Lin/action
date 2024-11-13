@@ -113,7 +113,8 @@ python demo/topdown_demo_with_mmdet.py \
 # scp -r -P 5322 new_oral2 root@10.8.5.43:/root/dataset/code
 # 训练
 # coco_tiny  coco格式 标注数据转为 labelme 可展示的每张图片对应json格式文件
-
+scp -r -P 5322 hrnet_w32-36af842e.pth root@10.8.5.43:/root/project/research/action/mmpose/checkpoints/
+训练参考：01_mmpose_tutorial_train_inference.ipynb
 ```
 
 ## Docs:
@@ -126,4 +127,36 @@ python demo/topdown_demo_with_mmdet.py \
 ```
 
 
+
+## Yolov11 train:
+
+```python
+# 1、yolov11 pose
+# dataset : https://gitcode.csdn.net/65ec4f5f1a836825ed797cad.html
+
+# coco8-pose train
+scp -r -P 7322 coco8-pose root@10.8.5.43:/root/dataset/action
+scp -r -P 7322 yolo11s-pose.pt root@10.8.5.43:/root/project/research/Yolo/ultralytics_yolov11/ultralytics
+# test
+python pose_test.py
+# train check
+python pose_train.py
+
+# hand keypoints train
+# inference 部署可参考：https://github.com/RionDsilvaCS/yolo-hand-pose
+scp -r -P 7322 hand-keypoints.zip root@10.8.5.43:/root/dataset/action
+python pose_hand_train.py
+"""result
+hand_YOLO11-pose summary (fused): 257 layers, 2,956,000 parameters, 0 gradients, 7.8 GFLOPs
+Class     Images  Instances      Box(P      R      mAP50     mAP50-95)   Pose(P   R        mAP50  mAP50-95): 100%|██████████| 244/244 [00:37<00:00,  6.48it/s]
+all       7808       7808      0.984      0.986      0.993     0.934      0.932   0.91      0.936  0.828
+Speed: 0.2ms preprocess, 0.8ms inference, 0.0ms loss, 0.6ms postprocess per image
+Results saved to /root/project/research/Yolo/ultralytics_yolov11/ultralytics/runs/pose/train3
+"""
+
+# 2、mmpose
+pose_log.md
+# 3、OpenPose
+pose_log.md
+```
 
