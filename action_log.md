@@ -1057,3 +1057,6 @@ Million (百万)； Billion (十亿)；
 - 大模型：参数量超过 **100亿（Billion）** 个参数，这类模型需要大量计算资源（如GPU集群）进行训练，通常适用于大规模数据和高计算需求任务，如大型语言模型（LLM）、高级图像生成等任务。 如 复杂任务、跨领域任务（如GPT、BERT、DALL-E）。**GPT-3**：参数量**1750亿**（Billion）；BERT（Large）：**3.4亿**（340 Million），生成模型：DALL-E 2，约 **35亿**（3.5 Billion）；StyleGAN2，约 **3000万**（30 Million）。
 - 中型模型：参数量介于 **几亿到几十亿** 个参数。常规的图像分类、目标检测、自然语言处理等任务。ViT-B/16：86 Million； BERT（Base）：**1.1亿**（110 Million）；Swin Transformer (Swin-T)，约**2900万**（29 Million）。**ResNet-50**：约**2500万**（25 Million）；
 - 小模型：参数量在 **几百万到几亿** 个参数。这类模型通常用于低计算资源设备或实时应用，训练速度快，适合小型数据集和轻量化任务。MobileNet、SqueezeNet、EfficientNet-B0
+
+
+
